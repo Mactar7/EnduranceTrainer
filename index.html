@@ -42,9 +42,9 @@
     }
 
     #uploadedImage {
-      width: 100%;
+      max-width: 100%;
       max-height: 70vh;
-      object-fit: contain;
+      margin-top: 20px;
       display: none;
     }
   </style>
@@ -136,7 +136,6 @@
         if (totalTouchTime / 1000 >= goalTime) {
           stopIncreasingGoal();
           goalReached = true;
-          displayImageAtTop();
         }
       }, 1000);
     }
@@ -181,8 +180,8 @@
 
         if (cumulativeTime >= goalTime) {
           timeDisplayElement.style.color = 'green';
+          displayImage();
           goalReached = true;
-          displayImageAtTop();
         } else {
           timeDisplayElement.style.color = 'transparent';
           hideImage();
@@ -194,9 +193,8 @@
       }
     }
 
-    function displayImageAtTop() {
+    function displayImage() {
       uploadedImage.style.display = 'block';
-      uploadedImage.style.marginTop = '0';
     }
 
     function hideImage() {
