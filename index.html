@@ -11,7 +11,7 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      background-color: #f0f0f0;
+      background-color: #add8e6; /* Light Blue */
       font-family: Arial, sans-serif;
     }
 
@@ -20,6 +20,9 @@
       color: #fff;
       padding: 10px;
       text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     #options {
@@ -28,11 +31,14 @@
     }
 
     #timeDisplay {
-      font-size: 2em;
+      font-size: 4em; /* Increased font size */
       font-weight: bold;
       user-select: none;
       margin-top: 20px;
       text-align: center;
+      background-image: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, red);
+      -webkit-background-clip: text;
+      color: transparent;
     }
 
     #uploadedImage {
@@ -50,6 +56,9 @@
       <label for="goalInput">Set Goal (seconds): </label>
       <input type="number" id="goalInput" min="1" value="60">
       <br>
+      <label for="increaseGoalCheckbox">Hard Mode: </label>
+      <input type="checkbox" id="increaseGoalCheckbox">
+      <br>
       <label for="imageInput">Upload Image: </label>
       <input type="file" id="imageInput" accept="image/*">
       <br>
@@ -65,17 +74,20 @@
     let totalTouchTime = 0;
     let touchStartTime;
     let animationFrameId;
-    let goalTime = 60; // Default goal time in seconds
+    let goalTime = 60;
     let lastUpdateTime;
+    let increasingGoalInterval;
+    let goalReached = false;
 
     const timeDisplayElement = document.getElementById('timeDisplay');
     const goalInput = document.getElementById('goalInput');
     const imageInput = document.getElementById('imageInput');
     const uploadedImage = document.getElementById('uploadedImage');
     const hideTimeCheckbox = document.getElementById('hideTimeCheckbox');
+    const increaseGoalCheckbox = document.getElementById('increaseGoalCheckbox');
 
     goalInput.addEventListener('input', function () {
-      goalTime = parseInt(this.value, 10) || 1; // Use a default value of 1 if input is not a valid number
+      goalTime = parseInt(this.value, 10) || 1;
       updateDisplay();
     });
 
@@ -94,24 +106,50 @@
       updateDisplay();
     });
 
+    increaseGoalCheckbox.addEventListener('change', function () {
+      updateDisplay();
+      if (increaseGoalCheckbox.checked && touchStartTime && !goalReached) {
+        startIncreasingGoal();
+      } else {
+        stopIncreasingGoal();
+      }
+    });
+
     document.addEventListener('touchstart', handleTouchStart);
     document.addEventListener('touchend', handleTouchEnd);
 
-    // Disable context menu on touch and hold
     document.addEventListener('contextmenu', function (event) {
       event.preventDefault();
     });
 
-    // Touching the options won't add to cumulative time
     const options = document.getElementById('options');
     options.addEventListener('touchstart', function (event) {
       event.stopPropagation();
     });
 
+    function startIncreasingGoal() {
+      stopIncreasingGoal();
+      increasingGoalInterval = setInterval(() => {
+        goalTime += 1;
+        updateDisplay();
+        goalInput.value = goalTime;
+        if (totalTouchTime / 1000 >= goalTime) {
+          stopIncreasingGoal();
+          goalReached = true;
+        }
+      }, 1000);
+    }
+
+    function stopIncreasingGoal() {
+      clearInterval(increasingGoalInterval);
+    }
+
     function handleTouchStart() {
       touchStartTime = Date.now();
       lastUpdateTime = touchStartTime;
+      clearTimeout(increasingGoalInterval);
       requestAnimationFrame(updateDisplay);
+      goalReached = false;
     }
 
     function handleTouchEnd() {
@@ -119,13 +157,15 @@
         const touchEndTime = Date.now();
         const touchDuration = touchEndTime - touchStartTime;
 
-        // If touch duration is more than 100ms, add it to the total touch time
         if (touchDuration > 100) {
           totalTouchTime += touchDuration;
         }
 
         touchStartTime = null;
-        updateDisplay(); // Update display when touch ends
+
+        if (increaseGoalCheckbox.checked && !goalReached) {
+          startIncreasingGoal();
+        }
       }
     }
 
@@ -138,16 +178,15 @@
 
         timeDisplayElement.innerText = hideTimeCheckbox.checked ? '' : cumulativeTime.toFixed(2) + "s";
 
-        // Check if the goal is reached
         if (cumulativeTime >= goalTime) {
           timeDisplayElement.style.color = 'green';
           displayImage();
+          goalReached = true;
         } else {
-          timeDisplayElement.style.color = 'black';
+          timeDisplayElement.style.color = 'transparent';
           hideImage();
         }
 
-        // Continue updating display
         animationFrameId = requestAnimationFrame(updateDisplay);
       } else {
         cancelAnimationFrame(animationFrameId);
